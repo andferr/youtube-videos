@@ -1,5 +1,6 @@
+import dotenv from "dotenv"
+dotenv.config()
 import { Client } from "tmi.js"
-import "dotenv/config.js"
 import dbConnect from "./dbConnect.js"
 import Commands from "./models/commands.js"
 
