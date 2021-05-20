@@ -11,8 +11,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "axios": "^0.21.1",
     "dotenv": "^9.0.2",
     "mongoose": "^5.12.9",
-    "tmi.js": "^1.8.3"
+    "tmi.js": "^1.8.3",
+    "validator": "^13.6.0"
   }
 }

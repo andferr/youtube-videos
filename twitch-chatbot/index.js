@@ -1,8 +1,10 @@
 import dotenv from "dotenv"
 dotenv.config()
+
 import { Client } from "tmi.js"
 import dbConnect from "./dbConnect.js"
 import Commands from "./models/commands.js"
+import parser from "./utils/parser.js"
 
 const client = new Client({
     identity: {
@@ -44,28 +46,28 @@ client.on("chat", async (channel, tags, message, self) => {
                     let commandName = args.shift()
                     commandName = commandName.startsWith("!") ? commandName : `!${commandName}`
                     const commandResp = args.join(" ")
-                    let newRole = args.shift().toLowerCase()
+                    let commandRole = args.shift().toLowerCase()
 
-                    switch (newRole) {
+                    switch (commandRole) {
                         case "streamer":
                         case "+o":
                         case "broadcaster":
-                            newRole = "broadcaster"
+                            commandRole = "broadcaster"
                             break;
                         case "mod":
                         case "+v":
                         case "moderator":
-                            newRole = "moderator"
+                            commandRole = "moderator"
                             break;
                         case "vip":
-                            newRole = "vip"
+                            commandRole = "vip"
                             break;
                         case "sub":
                         case "subscriber":
-                            newRole = "subscriber"
+                            commandRole = "subscriber"
                             break;
                         default:
-                            newRole = null
+                            commandRole = null
                     }
 
                     switch (trigger) {
@@ -105,8 +107,8 @@ client.on("chat", async (channel, tags, message, self) => {
                             await dbConnect()
                             const addrole = await Commands.findOne({ name: commandName })
                             if (!addrole) return client.say(channel, "Comando não encontrado!")
-                            if (newRole) {
-                                addrole.roles.push(newRole)
+                            if (commandRole) {
+                                addrole.roles.push(commandRole)
                                 addrole.save((err) => {
                                     if (err) return client.say(channel, "Um erro ocorreu!")
                                     return client.say(channel, `${commandName} foi atualizado com sucesso!`)
@@ -118,8 +120,8 @@ client.on("chat", async (channel, tags, message, self) => {
                             await dbConnect()
                             const delrole = await Commands.findOne({ name: commandName })
                             if (!delrole) return client.say(channel, "Comando não encontrado!")
-                            if (newRole) {
-                                delrole.roles = delrole.roles.filter(role => role !== newRole)
+                            if (commandRole) {
+                                delrole.roles = delrole.roles.filter(role => role !== commandRole)
                                 delrole.save((err) => {
                                     if (err) return client.say(channel, "Um erro ocorreu!")
                                     return client.say(channel, `${commandName} foi atualizado com sucesso!`)
@@ -134,13 +136,9 @@ client.on("chat", async (channel, tags, message, self) => {
                 break;
 
             default:
-                await dbConnect()
-                const cmd = await Commands.findOne({ name: command })
-                if (!cmd) return
-                if (!cmd.roles.length || cmd.roles.some(role => tags.badges.hasOwnProperty(role))) {
-                    client.say(channel, cmd.response)
-                }
-                break;
+                parser(message.split(" "), tags).then(botResponse => {
+                    if (botResponse) client.say(channel, botResponse)
+                })
         }
     }
 })
