@@ -5,6 +5,7 @@ import { Client } from "tmi.js"
 import dbConnect from "./dbConnect.js"
 import Commands from "./models/commands.js"
 import parser from "./utils/parser.js"
+import filterMessage from "./utils/filterMessage.js"
 
 const client = new Client({
     identity: {
@@ -31,12 +32,19 @@ client.on("chat", async (channel, tags, message, self) => {
     if (self) return
     console.log(`${channel}/${tags['display-name']}: ${message}`)
 
-    const is_streamer = tags.badges.hasOwnProperty("broadcaster")
-    const is_mod = tags.badges.hasOwnProperty("moderator")
-    const is_sub = tags.badges.hasOwnProperty("subscriber")
-    const is_vip = tags.badges.hasOwnProperty("vip")
+    const is_streamer = tags.badges && tags.badges.hasOwnProperty("broadcaster")
+    const is_mod = tags.badges && tags.badges.hasOwnProperty("moderator")
+    const is_sub = tags.badges && tags.badges.hasOwnProperty("subscriber")
+    const is_vip = tags.badges && tags.badges.hasOwnProperty("vip")
     const args = message.split(" ")
     const command = args.shift()
+
+
+    filterMessage(tags, message).then(chk => {
+        if (chk.length >= 1) {
+            client.timeout(channel, tags.username, 5, "Bocã sujã!")
+        }
+    })
 
     if (command.startsWith("!")) {
         switch (command) {
