@@ -55,7 +55,7 @@ client.on("chat", async (channel, tags, message, self) => {
                     commandName = commandName.startsWith("!") ? commandName : `!${commandName}`
                     const commandResp = args.join(" ")
                     let commandRole = args.shift() // preciso verificar se dentro do valor existe uma string
-                    commandRole = typeof commandRole === "string" ? commandRole.toLowerCase() : null // verifico se rommandRole é uma string
+                    commandRole = typeof commandRole === "string" ? commandRole.toLowerCase() : null // verifico se commandRole é uma string
 
                     switch (commandRole) {
                         case "streamer":
@@ -145,8 +145,8 @@ client.on("chat", async (channel, tags, message, self) => {
                 break;
 
             default:
-                parser(message.split(" "), tags).then(botResponse => {
-                    if (botResponse) client.say(channel, botResponse)
+                parser(message, tags).then(botResponse => {
+                    if (typeof botResponse === "string") client.say(channel, botResponse)
                 })
         }
     }

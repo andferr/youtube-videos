@@ -4,9 +4,13 @@ import asyncForEach from "./foreach.js"
 import validator from "validator"
 import axios from "axios"
 
-export default async function parser(args, tags) {
+/* 
+Message parser
+*/
+export default async function parser(userMessage, tags) {
     await dbConnect()
 
+    const args = userMessage.split(" ")
     const name = args.shift()
     const cmd = await Commands.findOne({ name })
 
