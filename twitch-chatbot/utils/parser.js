@@ -4,8 +4,11 @@ import asyncForEach from "./foreach.js"
 import validator from "validator"
 import axios from "axios"
 
-/* 
+/**
 Message parser
+@param {String} userMessage Mensagem do usuário
+@param {Array} tags Informações do usuário, providas pelo tmi.js
+@returns {Promise<String|void>} Mensagem formatada
 */
 export default async function parser(userMessage, tags) {
     await dbConnect()

@@ -1,15 +1,15 @@
 {
-  "name": "bot",
-  "version": "1.0.0",
-  "description": "",
+  "name": "jinxratbot",
+  "version": "1.0.1",
+  "description": "Twitch Chatbot made with tmi.js",
   "main": "index.js",
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": ["twitch", "chatbot", "tmi.js", "commands", "mongodb"],
+  "author": "JINXRAT",
+  "license": "MIT",
   "dependencies": {
     "axios": "^0.21.1",
     "dotenv": "^9.0.2",

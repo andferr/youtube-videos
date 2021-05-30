@@ -21,7 +21,7 @@ const client = new Client({
 client.connect()
 
 client.on("connected", (addr, port) => {
-    console.log(`Bot conectado com sucesso: ${addr}:${port}`)
+    console.log(`Conectado com sucesso a ${addr}:${port}`)
 })
 
 client.on("join", (channel, username, self) => {
@@ -30,6 +30,11 @@ client.on("join", (channel, username, self) => {
 
 client.on("chat", async (channel, tags, message, self) => {
     if (self) return
+
+    filterMessage(tags, message).then(badWords => {
+        if (badWords.length >= 1) return client.timeout(channel, tags.username, 5, "Bocã sujã!")
+    })
+
     console.log(`${channel}/${tags['display-name']}: ${message}`)
 
     const is_streamer = tags.badges && tags.badges.hasOwnProperty("broadcaster")
@@ -38,13 +43,6 @@ client.on("chat", async (channel, tags, message, self) => {
     const is_vip = tags.badges && tags.badges.hasOwnProperty("vip")
     const args = message.split(" ")
     const command = args.shift()
-
-
-    filterMessage(tags, message).then(chk => {
-        if (chk.length >= 1) {
-            client.timeout(channel, tags.username, 5, "Bocã sujã!")
-        }
-    })
 
     if (command.startsWith("!")) {
         switch (command) {
@@ -59,12 +57,10 @@ client.on("chat", async (channel, tags, message, self) => {
 
                     switch (commandRole) {
                         case "streamer":
-                        case "+o":
                         case "broadcaster":
                             commandRole = "broadcaster"
                             break;
                         case "mod":
-                        case "+v":
                         case "moderator":
                             commandRole = "moderator"
                             break;
