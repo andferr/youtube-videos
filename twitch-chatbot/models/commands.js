@@ -12,6 +12,11 @@ const Schema = new mongoose.Schema({
         type: String,
         required: true
     },
+    cooldown: {
+        type: Number,
+        required: true,
+        default: 5
+    },
     roles: {
         type: Array,
         required: true,
