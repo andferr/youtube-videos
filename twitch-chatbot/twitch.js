@@ -1,11 +1,16 @@
-import dotenv from "dotenv"
-dotenv.config()
-
 import { Client } from "tmi.js"
 import dbConnect from "./dbConnect.js"
 import Commands from "./models/commands.js"
 import parser from "./utils/parser.js"
 import filterMessage from "./utils/filterMessage.js"
+import glob from "glob"
+import io from "./server.js"
+
+function sendSMS(message, tags) {
+    io.emit("command.sms", {
+        message, tags
+    })
+}
 
 const client = new Client({
     identity: {
@@ -46,6 +51,10 @@ client.on("chat", async (channel, tags, message, self) => {
 
     if (command.startsWith("!")) {
         switch (command) {
+            case "!sms":
+                sendSMS(args.join(" "), tags)
+                break;
+
             case "!comando":
                 if (is_streamer || is_mod) {
                     const trigger = args.shift()
@@ -142,7 +151,16 @@ client.on("chat", async (channel, tags, message, self) => {
 
             default:
                 parser(message, tags).then(botResponse => {
-                    if (typeof botResponse === "string") client.say(channel, botResponse)
+                    if (typeof botResponse === "string") return client.say(channel, botResponse)
+                    glob(`${command.replace("!", "")}\.+(mp3|ogg|wav)`, {
+                        cwd: 'public/audios'
+                    }, (err, files) => {
+                        if (err) return
+                        if (files.length) {
+                            const audio = files.find(sfx => true)
+                            io.emit("command.sfx", { audio, volume: 1 })
+                        }
+                    })
                 })
         }
     }

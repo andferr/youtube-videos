@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overlay</title>
+    <script src="/socket.io/socket.io.min.js"></script>
+</head>
+
+<body>
+    <script>
+        let soundsPlayed = []
+
+        const socket = io("/overlay")
+        const voiceList = ["id-ID", "pt-BR", "pt-PT", "es-ES", "ru-RU", "fr-CA", "fr-FR", "de-DE", "it-IT", "ko-KR", "cmn-CN"]
+        const queue = {
+            isPlaying: false,
+            list: [],
+            currentlyPlaying: null
+        }
+        const soundCache = new Map()
+        const audioCtx = new AudioContext()
+        const audioGain = audioCtx.createGain()
+        audioGain.gain.value = 1
+        audioGain.connect(audioCtx.destination)
+
+        async function loadSound(location, dontCache = false) {
+            if (!dontCache) {
+                const sound = soundCache.get(location)
+                if (sound) return sound
+            }
+            let audioBuff
+            try {
+                const res = await fetch(location)
+                const arrayBuff = await res.arrayBuffer()
+                audioBuff = await audioCtx.decodeAudioData(arrayBuff)
+            } catch {
+                console.error(`Falha ao carregar audio: "${location}"`)
+                return null
+            }
+            if (!dontCache) {
+                soundCache.set(location, audioBuff)
+            }
+            return audioBuff
+        }
+
+        function loadSoundNoCache(location) {
+            return loadSound(location, true)
+        }
+
+        function playSound(audio) {
+            return new Promise((res, rej) => {
+                if (!audio) return res()
+                const source = audioCtx.createBufferSource()
+                source.buffer = audio.buffer
+                audioGain.gain.value = audio.volume || 1
+                source.connect(audioGain)
+                source.start(audioCtx.currentTime)
+                source.onended = () => {
+                    queue.currentlyPlaying = null
+                    res()
+                }
+                queue.currentlyPlaying = {
+                    stop() {
+                        source.stop()
+                        res()
+                    }
+                }
+            })
+        }
+
+        function once(name) {
+            return new Promise((res, rej) => {
+                const onceError = name === 'error'
+                const listener = onceError ? res : (...args) => {
+                    socket.off('error', error)
+                    res(args)
+                }
+                socket.once(name, listener)
+                if (onceError) return
+                const error = (err) => {
+                    socket.off(name, listener)
+                    rej(err)
+                }
+                socket.once('error', error)
+            })
+        }
+
+        async function playQueue() {
+            if (!queue.list.length) return
+            if (queue.isPlaying) return once("queue-next").then(playQueue)
+            queue.isPlaying = true
+            const listItem = queue.list.shift()
+            for (const item of listItem.items) {
+                await playSound(item)
+            }
+            queue.isPlaying = false
+            socket.emit("queue-next")
+        }
+
+        async function addToQueue(...items) {
+            for (const [i, n] of items.entries()) {
+                if (n instanceof AudioBuffer === false) {
+                    const isString = typeof n === 'string'
+                    const name = isString ? n : n.location
+                    items[i] = {
+                        buffer: await loadSound(name),
+                        volume: isString ? 1 : n.volume || 1
+                    }
+                } else {
+                    items[i] = { buffer: n, volume: 1 }
+                }
+            }
+            queue.list.push({ items })
+            playQueue()
+        }
+
+        socket.on("command.sms", async ({ message, tags }) => {
+            const text = `${tags.username} disse: "${message}"`
+            const voice = voiceList[Math.round(Math.random() * (voiceList.length - 1))]
+            addToQueue(
+                await loadSoundNoCache(`/tts-message/?${new URLSearchParams({ text, voice })}`)
+            )
+        })
+
+        socket.on("command.sfx", ({ audio, volume }) => {
+            soundsPlayed = soundsPlayed.slice(-2)
+            if (!soundsPlayed.includes(audio)) {
+                soundsPlayed.push(audio)
+            }
+            const location = `/audios/${audio}`
+            addToQueue({ location, volume })
+        })
+
+        socket.on("command.skip", () => {
+            if (queue.currentlyPlaying) queue.currentlyPlaying.stop()
+        })
+    </script>
+</body>
+
+</html>
