@@ -18,11 +18,11 @@ app.get("/", (req, res) => {
     res.send("Olá, internet!")
 })
 
-app.get("/tts-message", async (req, res) => {
+app.get("/tts-message", async (req, res, next) => {
     const text = req.query.text
     if (text.length) {
         const languageCode = req.query.voice ?? 'pt-BR'
-        const response = await axios.post(process.env.TTS_GOOGLE_API, {
+        const response = await axios.post(`https://texttospeech.googleapis.com/v1/text:synthesize?key=${process.env.TTS_GOOGLE_API}`, {
             voice: { languageCode },
             input: { text },
             audioConfig: {
@@ -32,12 +32,13 @@ app.get("/tts-message", async (req, res) => {
             }
         })
         if (response.status === 200 && response.data && response.data.audioContent) {
+            let buff
             const audioContent = response.data.audioContent
             try {
-                const buff = new Buffer.from(audioContent, 'base64')
+                buff = new Buffer.from(audioContent, 'base64')
             } catch (err) {
                 console.error(err)
-                const buff = {}
+                return next()
             }
             return res.set('Content-Type', 'audio/ogg').set('Content-Lenght', buff.length).send(buff)
         }
@@ -48,4 +49,4 @@ const sockets = io.of(/^\/\w+$/)
 
 srv.listen(port, () => console.log(`Rodando em http://localhost:${port}`))
 
-export default sockets
+export default io

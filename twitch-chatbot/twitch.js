@@ -7,7 +7,7 @@ import glob from "glob"
 import io from "./server.js"
 
 function sendSMS(message, tags) {
-    io.emit("command.sms", {
+    io.of("/overlay").emit("command.sms", {
         message, tags
     })
 }
@@ -158,7 +158,7 @@ client.on("chat", async (channel, tags, message, self) => {
                         if (err) return
                         if (files.length) {
                             const audio = files.find(sfx => true)
-                            io.emit("command.sfx", { audio, volume: 1 })
+                            return io.of("/overlay").emit("command.sfx", { audio, volume: 1 })
                         }
                     })
                 })
